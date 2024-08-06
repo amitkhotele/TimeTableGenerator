@@ -6,14 +6,14 @@ body {
 }
 
 .container {
-  width: 80%;
+  width: 90%;
   margin: 0 auto;
   background: #fff;
-  padding: 80px;
+  padding: 20px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
 }
 
-h1, h2 {
+h1, h2, h3 {
   text-align: center;
 }
 
@@ -49,6 +49,11 @@ button:hover {
   margin-top: 20px;
 }
 
+.table-container {
+  overflow-x: auto;
+  margin-bottom: 20px;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -75,4 +80,35 @@ footer {
   position: fixed;
   width: 100%;
   bottom: 0;
+}
+
+.semester-timetable {
+  margin-top: 20px;
+}
+
+@media (max-width: 600px) {
+  h1, h2, h3 {
+    font-size: 1.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 10px;
+  }
+
+  input, button {
+    font-size: 1rem;
+  }
+
+  table, th, td {
+    font-size: 0.8rem;
+  }
+
+  button {
+    width: 100%;
+  }
+
+  .container {
+    padding: 10px;
+  }
+
 }
