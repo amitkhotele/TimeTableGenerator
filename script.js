@@ -3,6 +3,7 @@ document.getElementById('generate-timetable-btn').addEventListener('click', gene
 
 let data = {};
 let currentSemester = '';
+let teacherAssignments = {};
 
 function addSubject() {
     const semesterGroup = document.getElementById('semester-group');
@@ -11,21 +12,11 @@ function addSubject() {
     const teacher = document.getElementById('teacher').value;
 
     if (subject && teacher) {
-        if (!currentSemester) {
-            if (semester) {
-                currentSemester = semester;
-                semesterGroup.style.display = 'none';
-            } else {
-                alert('Please enter the semester.');
-                return;
-            }
+        if (!data[semester]) {
+            data[semester] = [];
         }
-
-        if (!data[currentSemester]) {
-            data[currentSemester] = [];
-        }
-        data[currentSemester].push({ subject, teacher });
-        updateSubjectList(currentSemester, subject, teacher);
+        data[semester].push({ subject, teacher });
+        updateSubjectList(semester, subject, teacher);
         clearInputs();
     } else {
         alert('Please enter both subject and teacher.');
@@ -40,6 +31,7 @@ function updateSubjectList(semester, subject, teacher) {
 }
 
 function clearInputs() {
+    document.getElementById('semester').value = '';
     document.getElementById('subject').value = '';
     document.getElementById('teacher').value = '';
 }
@@ -56,60 +48,95 @@ function generateTimetable() {
     const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const slots = ["9-10", "10-11", "11-12", "12-1", "2-3", "3-4"];
 
-    const timetable = document.querySelector('#timetable tbody');
-    timetable.innerHTML = '';
+    const timetableContainer = document.getElementById('timetables');
+    timetableContainer.innerHTML = '';
 
-    let assignments = {};
+    teacherAssignments = {};
+
     for (let semester in data) {
-        let subjects = data[semester];
+        const subjects = data[semester];
+        let assignments = {};
 
-        assignments[semester] = {};
-        
         for (let day of days) {
-            assignments[semester][day] = {};
-            let shuffledSubjects = shuffle([...subjects]); // Randomize subjects for each day
+            assignments[day] = {};
+            let shuffledSubjects = shuffle([...subjects]);
             let subjectIndex = 0;
-            
+
             for (let slot of slots) {
                 let subject = shuffledSubjects[subjectIndex % shuffledSubjects.length];
 
-                // Ensure no teacher is assigned to multiple slots at the same time across different semesters
-                while (isTeacherAssigned(assignments, day, slot, subject.teacher)) {
+                while (isTeacherAssigned(day, slot, subject.teacher)) {
                     subjectIndex++;
                     subject = shuffledSubjects[subjectIndex % shuffledSubjects.length];
                 }
 
-                assignments[semester][day][slot] = { subject: subject.subject, teacher: subject.teacher };
+                assignments[day][slot] = { subject: subject.subject, teacher: subject.teacher };
+                assignTeacher(day, slot, subject.teacher);
                 subjectIndex++;
             }
         }
-    }
 
-    for (let semester in assignments) {
-        for (let day of days) {
-            let row = document.createElement('tr');
-            let dayCell = document.createElement('td');
-            dayCell.textContent = day;
-            row.appendChild(dayCell);
-
-            for (let slot of slots) {
-                let slotCell = document.createElement('td');
-                if (assignments[semester][day] && assignments[semester][day][slot]) {
-                    let { subject, teacher } = assignments[semester][day][slot];
-                    slotCell.textContent = `${subject} (${teacher})`;
-                }
-                row.appendChild(slotCell);
-            }
-            timetable.appendChild(row);
-        }
+        // Display timetable for the current semester
+        displayTimetable(semester, assignments);
     }
 }
 
-function isTeacherAssigned(assignments, day, slot, teacher) {
-    for (let semester in assignments) {
-        if (assignments[semester][day] && assignments[semester][day][slot] && assignments[semester][day][slot].teacher === teacher) {
-            return true;
-        }
+function isTeacherAssigned(day, slot, teacher) {
+    return teacherAssignments[`${day}-${slot}`] && teacherAssignments[`${day}-${slot}`].includes(teacher);
+}
+
+function assignTeacher(day, slot, teacher) {
+    const key = `${day}-${slot}`;
+    if (!teacherAssignments[key]) {
+        teacherAssignments[key] = [];
     }
-    return false;
+    teacherAssignments[key].push(teacher);
+}
+
+function displayTimetable(semester, assignments) {
+    const timetableContainer = document.getElementById('timetables');
+    const tableContainer = document.createElement('div');
+    tableContainer.className = 'table-container';
+
+    const table = document.createElement('table');
+    table.className = 'semester-timetable';
+
+    const thead = document.createElement('thead');
+    const headerRow = document.createElement('tr');
+    headerRow.innerHTML = `
+        <th>Day/Slot</th>
+        <th>9-10</th>
+        <th>10-11</th>
+        <th>11-12</th>
+        <th>12-1</th>
+        <th>2-3</th>
+        <th>3-4</th>
+    `;
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement('tbody');
+    for (let day of Object.keys(assignments)) {
+        let row = document.createElement('tr');
+        let dayCell = document.createElement('td');
+        dayCell.textContent = day;
+        row.appendChild(dayCell);
+
+        for (let slot of ["9-10", "10-11", "11-12", "12-1", "2-3", "3-4"]) {
+            let slotCell = document.createElement('td');
+            if (assignments[day] && assignments[day][slot]) {
+                let { subject, teacher } = assignments[day][slot];
+                slotCell.textContent = `${subject} (${teacher})`;
+            }
+            row.appendChild(slotCell);
+        }
+        tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+
+    const semesterTitle = document.createElement('h3');
+    semesterTitle.textContent = `Timetable for ${semester}`;
+    tableContainer.appendChild(semesterTitle);
+    tableContainer.appendChild(table);
+    timetableContainer.appendChild(tableContainer);
 }
